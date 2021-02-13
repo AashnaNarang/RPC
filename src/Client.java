@@ -8,7 +8,9 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 /**
- * This class serves as the client. It sends UDP packets with different requests and receives responses.
+ * This class serves as the client. It sends UDP packets with different requests
+ * and receives responses.
+ * 
  * @author Aashna Narang
  *
  */
@@ -20,7 +22,9 @@ public class Client {
 
 	/**
 	 * Public constructor to initialize the instance variables
-	 * @param maxRequests The maximum number of requests the client can make before closing its socket
+	 * 
+	 * @param maxRequests The maximum number of requests the client can make before
+	 *                    closing its socket
 	 */
 	public Client(int maxRequests) {
 		try {
@@ -39,6 +43,14 @@ public class Client {
 	 */
 	public void sendAndReceive() {
 		requestNumber++;
+		sendPacket();
+		receivePacket();
+	}
+
+	/**
+	 * Create a packet and send to intermediate host
+	 */
+	private void sendPacket() {
 		byte msg[] = createMsg();
 
 		try {
@@ -59,7 +71,12 @@ public class Client {
 			System.exit(1);
 		}
 		System.out.println("Client: Packet sent.\n");
+	}
 
+	/**
+	 * Receive a packet and print and store appropriate values
+	 */
+	private void receivePacket() {
 		// Construct a DatagramPacket for receiving packets up
 		// to 100 bytes long (the length of the byte array).
 
@@ -87,6 +104,7 @@ public class Client {
 
 	/**
 	 * Create the data message for a packet depending on the current request number
+	 * 
 	 * @return The byte array to be set as the data of the packet
 	 */
 	private byte[] createMsg() {
@@ -124,6 +142,7 @@ public class Client {
 
 	/**
 	 * Initialize the client and call sendAndReceive 11 times
+	 * 
 	 * @param args An array of command-line arguments for the application
 	 */
 	public static void main(String args[]) {

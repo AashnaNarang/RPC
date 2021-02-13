@@ -31,6 +31,15 @@ public class Server {
 	 * @throws IOException If an invalid message is sent, close the socket and throw an error
 	 */
 	public void receiveAndSend() throws IOException {
+		receivePacket();
+		sendPacket();
+	}
+
+	/**
+	 * Receive a packet from intermediate host and store and print appropriate values
+	 * @throws IOException If an invalid message is sent, close the socket and throw an error
+	 */
+	private void receivePacket() throws IOException {
 		byte data[] = new byte[100];
 		receivePacket = new DatagramPacket(data, data.length);
 		System.out.println("Server: Waiting for Packet.\n");
@@ -65,7 +74,12 @@ public class Server {
 		}
 
 		sendPacket = new DatagramPacket(response, response.length, receivePacket.getAddress(), receivePacket.getPort());
-
+	}
+	
+	/**
+	 * Send a packet to intermediate host 
+	 */
+	private void sendPacket() {
 		System.out.println("Server: Sending packet:");
 		PrintHelpers.printSendPacketInfo(sendPacket);
 
