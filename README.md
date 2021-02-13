@@ -8,7 +8,7 @@ Practicing sending and receiving udp packets from various ports. Client sends a 
 2. Select `Import from Git (with smart import)`
 3. Copy and Paste `https://github.com/AashnaNarang/Datagrams.git` into the Clone URI field
 4. Select `Next`
-5. Make sure the `master` branch is selected and click `Next`
+5. Make sure the `main` branch is selected and click `Next`
 6. Chose a directory to save the project into
 7. Leave all of the default options. Hit `Next` and leave all the deafult options again
 8. Click `Finish`
