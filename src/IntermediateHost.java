@@ -5,160 +5,115 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 
 /**
- * 
+ * Intermediate Host to bridge communication between client and server
  * @author Aashna Narang
  *
  */
-public class IntermediateHost {
-	// use separate packet objects from client and server to be able to access address/port of client later on
-	private DatagramPacket sendPacket, receivePacket, sendPacket2, receivePacket2;
-	private DatagramSocket receiveSocket2, receiveSocket;
+public class IntermediateHost implements Runnable {
+	private DatagramPacket sendPacket, receivePacket;
+	private DatagramSocket sendSocket, receiveSocket;
+	private Box box;
 
-	public IntermediateHost() {
+	/**
+	 * Public constructor to initialize instance variables and set up a socket for a specific port
+	 * @param port Port to communicate with
+	 * @param box Box object to store data that is being communicated between IntermediateHost threads
+	 */
+	public IntermediateHost(int port, Box box) {
 		try {
-			receiveSocket = new DatagramSocket(23);
-			receiveSocket2 = new DatagramSocket();
-
+			receiveSocket = new DatagramSocket(port);
+			sendSocket = new DatagramSocket();
 			receiveSocket.setSoTimeout(5000);
-			receiveSocket2.setSoTimeout(5000);
+			this.box = box;
 		} catch (SocketException se) {
 			se.printStackTrace();
 			System.exit(1);
 		}
 	}
+	
+	/**
+	 * Send a datagram packet
+	 */
+	private void sendPacket() {
+		System.out.println(Thread.currentThread().getName() + ": Sending packet:");
+		PrintHelpers.printSendPacketInfo(sendPacket);
 
-	/**
-	 * Receive a packet form client and pass it on to server
-	 */
-	public void receiveAndSendToServer() {
-		receiveFromClient();
-		sendToServer();
+		try {
+			sendSocket.send(sendPacket);
+		} catch (SocketException se) {
+			sendSocket.close();
+			receiveSocket.close();
+			se.printStackTrace();
+			System.exit(1);
+		} catch (IOException e) {
+			sendSocket.close();
+			receiveSocket.close();
+			e.printStackTrace();
+			System.exit(1);
+		}
+
+		System.out.println(Thread.currentThread().getName() + ": packet sent\n");
 	}
+
 	
 	/**
-	 * Receive a packet from client and send to server
+	 * Wait to receive a packet and either send data or send request acknowledgement
 	 */
-	public void receiveAndSendToClient() {
-		receiveFromServer();
-		sendToClient();
-	}
-	
-	/**
-	 * Wait to receive a packet from client and print and store information as needed
-	 */
-	private void receiveFromClient() {
+	private void receivePacket() {
 		byte data[] = new byte[100];
 		receivePacket = new DatagramPacket(data, data.length);
-		System.out.println("IntermediateHost: Waiting for Packet.\n");
+		System.out.println(Thread.currentThread().getName() + ": Waiting for Packet.\n");
 
 		try {
 			System.out.println("Waiting...");
 			receiveSocket.receive(receivePacket);
 		} catch (SocketTimeoutException e1) {
+			sendSocket.close();
 			receiveSocket.close();
 			System.exit(1);
 		} catch (IOException e) {
 			System.out.print("IO Exception: likely:");
 			System.out.println("Receive Socket Timed Out.\n" + e);
 			e.printStackTrace();
-			System.exit(1);
-		}
-
-		System.out.println("IntermediateHost: Packet received:");
-		PrintHelpers.printReceivePacketInfo(receivePacket, data);
-
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
-		sendPacket = new DatagramPacket(data, receivePacket.getLength(), receivePacket.getAddress(), 69);
-	}
-	
-	/**
-	 * Send a packet to the server, print appropriate messages
-	 */
-	private void sendToServer() {
-		System.out.println("IntermediateHost: Sending packet:");
-		PrintHelpers.printSendPacketInfo(sendPacket);
-
-		try {
-			receiveSocket2.send(sendPacket);
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
-
-		System.out.println("IntermediateHost: packet sent\n");
-	}
-	
-	/**
-	 * Receive packets from server and store and print approriate values
-	 */
-	private void receiveFromServer() {
-		byte data[] = new byte[100];
-		receivePacket2 = new DatagramPacket(data, data.length);
-		System.out.println("IntermediateHost: Waiting for Packet.\n");
-
-		try {
-			System.out.println("Waiting...");
-			receiveSocket2.receive(receivePacket2);
-		} catch (SocketTimeoutException e1) {
-			receiveSocket2.close();
-			System.exit(1);
-		} catch (IOException e) {
-			System.out.print("IO Exception: likely:");
-			System.out.println("Receive Socket Timed Out.\n" + e);
-			e.printStackTrace();
-			System.exit(1);
-		}
-
-		System.out.println("IntermediateHost: Packet received:");
-		PrintHelpers.printReceivePacketInfo(receivePacket, data);
-
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
-		sendPacket2 = new DatagramPacket(data, receivePacket2.getLength(), receivePacket.getAddress(),
-				receivePacket.getPort());
-	}
-	
-	/**
-	 * Send a packet to the client
-	 */
-	private void sendToClient() {
-		System.out.println("IntermediateHost: Sending packet:");
-		PrintHelpers.printSendPacketInfo(sendPacket2);
-
-		try {
-			DatagramSocket sendSocket = new DatagramSocket();
-			sendSocket.send(sendPacket2);
 			sendSocket.close();
-		} catch (SocketException se) {
-			se.printStackTrace();
+			receiveSocket.close();
 			System.exit(1);
-		} catch (IOException e) {
+		}
+
+		System.out.println(Thread.currentThread().getName() + ": Packet received:");
+		PrintHelpers.printReceivePacketInfo(receivePacket, data);
+		
+		String msg = new String(data, 0, receivePacket.getLength());
+		byte[] resp;
+		if (msg.equals("Please send me data thx")) {
+			resp = box.get();
+		} else {
+			box.put(data);
+			resp = "Request acknowledged".getBytes();
+		}
+		
+		sendPacket = new DatagramPacket(resp, resp.length, receivePacket.getAddress(), receivePacket.getPort());
+
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
-
-		System.out.println("IntermediateHost: packet sent\n");
 	}
 
+
+	@Override
 	/**
-	 * Create an intermediate host object and continuously call the receive and send methods.
-	 * @param args An array of command-line arguments for the application
+	 * Continuously receive packets and send responses
 	 */
-	public static void main(String args[]) {
-		IntermediateHost c = new IntermediateHost();
+	public void run() {
 		while (true) {
-			c.receiveAndSendToServer();
-			c.receiveAndSendToClient();
+			receivePacket();
+			sendPacket();
 		}
-
 	}
+	
+	
+
 }

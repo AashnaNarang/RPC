@@ -1,9 +1,4 @@
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
@@ -14,9 +9,7 @@ import java.util.ArrayList;
  * @author Aashna Narang
  *
  */
-public class Client {
-	private DatagramPacket sendPacket, receivePacket;
-	private DatagramSocket sendReceiveSocket;
+public class Client extends SenderReceiver implements Runnable {
 	private int maxRequests;
 	private int requestNumber;
 
@@ -25,80 +18,45 @@ public class Client {
 	 * 
 	 * @param maxRequests The maximum number of requests the client can make before
 	 *                    closing its socket
+	 * @param intHostPort The port to use to communicate to the IntermediateHost
 	 */
-	public Client(int maxRequests) {
-		try {
-			this.maxRequests = maxRequests;
-			requestNumber = 0;
-			sendReceiveSocket = new DatagramSocket();
-			sendReceiveSocket.setSoTimeout(10000);
-		} catch (SocketException se) {
-			se.printStackTrace();
-			System.exit(1);
-		}
+	public Client(int maxRequests, int intHostPort) {
+		super(intHostPort);
+		this.maxRequests = maxRequests;
+		this.requestNumber = 0;
 	}
 
 	/**
-	 * Send a packet to intermediate host and wait to receive a response
+	 * Send a packet with data to intermediate host and wait to receive an
+	 * acknowledgement
 	 */
-	public void sendAndReceive() {
+	public void sendDataAndReceiveAck() {
 		requestNumber++;
-		sendPacket();
-		receivePacket();
-	}
-
-	/**
-	 * Create a packet and send to intermediate host
-	 */
-	private void sendPacket() {
-		byte msg[] = createMsg();
-
+		System.out.println("Client request number: " + requestNumber);
+		byte[] msg = createMsg();
 		try {
-			sendPacket = new DatagramPacket(msg, msg.length, InetAddress.getLocalHost(), 23);
+			sendPacket(msg, InetAddress.getLocalHost());
+			receivePacket();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
+			closeSocket();
 			System.exit(1);
 		}
-
-		System.out.println("Client: Sending packet:");
-		System.out.println("Request Number: " + requestNumber);
-		PrintHelpers.printSendPacketInfo(sendPacket);
-
-		try {
-			sendReceiveSocket.send(sendPacket);
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
-		System.out.println("Client: Packet sent.\n");
 	}
 
 	/**
-	 * Receive a packet and print and store appropriate values
+	 * Send a request for data to intermediate host and wait to receive data NOTE:
+	 * Kept method with duplicate code for readability
 	 */
-	private void receivePacket() {
-		// Construct a DatagramPacket for receiving packets up
-		// to 100 bytes long (the length of the byte array).
-
-		byte data[] = new byte[100];
-		receivePacket = new DatagramPacket(data, data.length);
-
+	public void sendRequestAndReceiveData() {
+		byte[] msg = "Please send me data thx".getBytes();
 		try {
-			sendReceiveSocket.receive(receivePacket);
-		} catch (SocketTimeoutException e1) {
-			sendReceiveSocket.close();
-			System.exit(1);
-		} catch (IOException e) {
+			sendPacket(msg, InetAddress.getLocalHost());
+			receivePacket();
+		} catch (UnknownHostException e) {
 			e.printStackTrace();
+			closeSocket();
 			System.exit(1);
-		}
-
-		System.out.println("Client: Packet received:");
-		PrintHelpers.printReceivePacketInfo(receivePacket, data);
-
-		if (requestNumber == maxRequests) {
-			System.out.println("Client closing.");
-			sendReceiveSocket.close();
 		}
 	}
 
@@ -140,16 +98,16 @@ public class Client {
 		return msg;
 	}
 
+	@Override
 	/**
-	 * Initialize the client and call sendAndReceive 11 times
-	 * 
-	 * @param args An array of command-line arguments for the application
+	 * Repeatedly send data and send requests for data. Repeat as many times as specified
 	 */
-	public static void main(String args[]) {
-		Client c = new Client(11);
-		for (int i = 0; i < 11; i++) {
-			c.sendAndReceive();
+	public void run() {
+		for (int i = 0; i < maxRequests; i++) {
+			sendDataAndReceiveAck();
+			sendRequestAndReceiveData();
 		}
-
+		closeSocket();
 	}
+
 }
