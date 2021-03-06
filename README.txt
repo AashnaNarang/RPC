@@ -1,4 +1,4 @@
-# Datagrams
+# RPC
 
 ## Overview
 Use UDP packets to allow a client to perform a remote procedure call. The client sends data to the intermediate host and the server sends a request for data to the intermediate host. The intermediate host sends an acknowledgement to the client and sends the client data to the server. 
