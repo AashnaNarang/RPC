@@ -5,8 +5,8 @@
  *
  */
 public class Box {
-	byte[] data;
-	boolean empty;
+	private byte[] data;
+	private boolean empty;
 
 	/**
 	 * Public constructor to initialize instance variables

@@ -12,7 +12,7 @@ import java.net.UnknownHostException;
  *
  */
 public class Server extends SenderReceiver implements Runnable {
-	private DatagramPacket sendPacket, receivePacket;
+	private DatagramPacket receivePacket;
 	private static final byte[] WRITE = new byte[] { 0, 4, 0, 0 };
 	private static final byte[] READ = new byte[] { 0, 3, 0, 1 };
 
